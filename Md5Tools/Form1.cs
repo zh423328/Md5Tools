@@ -26,7 +26,7 @@ namespace Md5Tools
         private void Form1_Load(object sender, EventArgs e)
         {
             //多线程调用
-           CheckForIllegalCrossThreadCalls = false;
+            CheckForIllegalCrossThreadCalls = false;
         }
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -88,9 +88,9 @@ namespace Md5Tools
         }
 
         //更新
-        static void UpdateProcess(object param)
+        void UpdateProcess(object param)
         {
-            Form1 pForm = (Form1)param;
+            Form1 pForm = (Form1)this;
             if (pForm != null)
             {
                 string basePath = pForm.textBox1.Text;
