@@ -9,12 +9,14 @@ using System.Windows.Forms;
 using System.Collections;
 using System.IO;
 using System.Security.Cryptography;
+using System.Threading;
 
 namespace Md5Tools
 {
     public partial class Form1 : Form
     {
         public List<string> list = new List<string>();
+        public string strPath = null;
 
         public Form1()
         {
@@ -23,7 +25,8 @@ namespace Md5Tools
 
         private void Form1_Load(object sender, EventArgs e)
         {
-
+            //多线程调用
+           CheckForIllegalCrossThreadCalls = false;
         }
 
         private void listBox1_SelectedIndexChanged(object sender, EventArgs e)
@@ -38,45 +41,11 @@ namespace Md5Tools
             if (dlg.ShowDialog() == DialogResult.OK)
             {
                 //打开对话框
-                string strPath = dlg.SelectedPath;
+                strPath = dlg.SelectedPath;
                 textBox1.Text = strPath + "\\";    //对话框
-                string basePath = textBox1.Text;
-                list.Clear();
 
-                string filetxt = basePath + "files.txt";
-
-                File.Delete(filetxt);
-                //打开文件
-                GetFileList(strPath);
-
-                FileStream stream = File.Open(basePath + "files.txt", FileMode.CreateNew);
-                progressBar1.Value = 0;
-                progressBar1.Minimum = 0;
-                progressBar1.Maximum = list.Count;
-
-                for (int i = 0; i < list.Count; ++i )
-                {
-                    string filepath = list[i];
-
-                    string md5value = GetFileMd5(filepath);
-                    string strFileName = filepath.Replace(basePath, "");
-                    string value = strFileName + "|" + md5value + "\r\n";
-                    byte[] bytes = Encoding.Default.GetBytes(value);
-                    //获取值的md5
-                    stream.Write(bytes, 0, bytes.Length);
-                    progressBar1.Value++;
-                    bool scroll = false;
-                    if (this.listBox1.TopIndex == this.listBox1.Items.Count - (int)(this.listBox1.Height / this.listBox1.ItemHeight))
-                       scroll = true;
-                    this.listBox1.Items.Add(strFileName + "........(" + progressBar1.Value + "/" + progressBar1.Maximum + ")");
-                   if (scroll)
-                     this.listBox1.TopIndex = this.listBox1.Items.Count - (int)(this.listBox1.Height / this.listBox1.ItemHeight);
-                }
-
-                stream.Close();
-
-                //完成
-                MessageBox.Show("所有文件md5加密完成", "md5加密");
+               Thread thread = new Thread(UpdateProcess);
+                thread.Start(this);
             }
         }
 
@@ -116,6 +85,52 @@ namespace Md5Tools
             stream.Close();
             
             return builder1.ToString();
+        }
+
+        //更新
+        static void UpdateProcess(object param)
+        {
+            Form1 pForm = (Form1)param;
+            if (pForm != null)
+            {
+                string basePath = pForm.textBox1.Text;
+                pForm.list.Clear();
+
+                string filetxt = basePath + "files.txt";
+
+                File.Delete(filetxt);
+                //打开文件
+                pForm.GetFileList(pForm.strPath);
+
+                FileStream stream = File.Open(basePath + "files.txt", FileMode.CreateNew);
+                pForm.progressBar1.Value = 0;
+                pForm.progressBar1.Minimum = 0;
+                pForm.progressBar1.Maximum = pForm.list.Count;
+
+                for (int i = 0; i < pForm.list.Count; ++i)
+                {
+                    string filepath = pForm.list[i];
+
+                    string md5value = pForm.GetFileMd5(filepath);
+                    string strFileName = filepath.Replace(basePath, "");
+                    string value = strFileName + "|" + md5value + "\r\n";
+                    byte[] bytes = Encoding.Default.GetBytes(value);
+                    //获取值的md5
+                    stream.Write(bytes, 0, bytes.Length);
+                    pForm.progressBar1.Value++;
+                    bool scroll = false;
+                    if (pForm.listBox1.TopIndex == pForm.listBox1.Items.Count - (int)(pForm.listBox1.Height / pForm.listBox1.ItemHeight))
+                        scroll = true;
+                    pForm.listBox1.Items.Add(strFileName + "........(" + pForm.progressBar1.Value + "/" + pForm.progressBar1.Maximum + ")");
+                    if (scroll)
+                        pForm.listBox1.TopIndex = pForm.listBox1.Items.Count - (int)(pForm.listBox1.Height / pForm.listBox1.ItemHeight);
+                }
+
+                stream.Close();
+
+                //完成
+                MessageBox.Show("所有文件md5加密完成", "md5加密");
+            }
         }
     }
 }
